@@ -8,10 +8,10 @@
 import { Router } from 'express';
 import * as controladorUsuarios from '../controladores/usuarios.controlador.js';
 import { verificarAutenticacion } from '../middlewares/autenticacion.js';
-import { verificarRol } from '../middlewares/autorizacion.js';
+import { exigirRol } from '../middlewares/autorizacion.js';
 
 const enrutador = Router();
 
-enrutador.get('/', verificarAutenticacion, verificarRol('administradora'), controladorUsuarios.listar);
+enrutador.get('/', verificarAutenticacion, exigirRol('administradora'), controladorUsuarios.listar);
 
 export default enrutador;

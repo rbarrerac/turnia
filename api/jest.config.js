@@ -9,5 +9,6 @@ export default {
   testEnvironment: 'node',
   transform: {},
   testMatch: ['**/pruebas/**/*.prueba.js'],
+  setupFiles: ['<rootDir>/pruebas/configuracionPruebas.js'],
   verbose: true,
 };

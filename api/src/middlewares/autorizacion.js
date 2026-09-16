@@ -1,15 +1,20 @@
 /**
- * Módulo: Middleware de autorización — verifica el rol (administradora/clienta)
+ * Módulo: Middleware de autorización — exige uno o más roles permitidos
  * Proyecto: Turnia
  * Autor: Ronald
  * Fecha de creación: 15/09/2026
  */
 
-export function verificarRol(rolRequerido) {
+import { crearErrorHttp } from '../utilidades/erroresHttp.js';
+
+export function exigirRol(...rolesPermitidos) {
   return function autorizador(peticion, respuesta, siguiente) {
-    // Pendiente de implementar: comparar peticion.usuaria.rol con rolRequerido.
+    if (!peticion.usuario || !rolesPermitidos.includes(peticion.usuario.rol)) {
+      siguiente(crearErrorHttp(403, 'SIN_PERMISO', 'No tienes permiso para acceder a este recurso.'));
+      return;
+    }
     siguiente();
   };
 }
 
-export default verificarRol;
+export default exigirRol;

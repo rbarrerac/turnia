@@ -4,6 +4,7 @@ node_modules/
 # Variables de entorno (contienen secretos)
 .env
 .env.local
+.env.prueba
 
 # Compilados / builds
 dist/

@@ -8,29 +8,29 @@
 import { Router } from 'express';
 import * as controladorCitas from '../controladores/citas.controlador.js';
 import { verificarAutenticacion } from '../middlewares/autenticacion.js';
-import { verificarRol } from '../middlewares/autorizacion.js';
+import { exigirRol } from '../middlewares/autorizacion.js';
 
 const enrutador = Router();
 
 enrutador.get('/disponibilidad', verificarAutenticacion, controladorCitas.obtenerDisponibilidad);
-enrutador.post('/', verificarAutenticacion, verificarRol('clienta'), controladorCitas.crear);
-enrutador.get('/mias', verificarAutenticacion, verificarRol('clienta'), controladorCitas.listarMias);
+enrutador.post('/', verificarAutenticacion, exigirRol('clienta'), controladorCitas.crear);
+enrutador.get('/mias', verificarAutenticacion, exigirRol('clienta'), controladorCitas.listarMias);
 enrutador.patch(
   '/:id/cancelar',
   verificarAutenticacion,
-  verificarRol('clienta'),
+  exigirRol('clienta'),
   controladorCitas.cancelar,
 );
 enrutador.get(
   '/agenda',
   verificarAutenticacion,
-  verificarRol('administradora'),
+  exigirRol('administradora'),
   controladorCitas.obtenerAgenda,
 );
 enrutador.patch(
   '/:id/estado',
   verificarAutenticacion,
-  verificarRol('administradora'),
+  exigirRol('administradora'),
   controladorCitas.cambiarEstado,
 );
 

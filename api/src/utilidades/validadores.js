@@ -5,12 +5,13 @@
  * Fecha de creación: 15/09/2026
  */
 
+const PATRON_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LONGITUD_MINIMA_CONTRASENA = 8;
+
 export function esCorreoValido(correo) {
-  // Pendiente de implementar.
-  return true;
+  return typeof correo === 'string' && PATRON_CORREO.test(correo);
 }
 
 export function esContrasenaValida(contrasena) {
-  // Pendiente de implementar.
-  return true;
+  return typeof contrasena === 'string' && contrasena.length >= LONGITUD_MINIMA_CONTRASENA;
 }
