@@ -1,10 +1,12 @@
 # Migraciones — notas manuales
 
-Prisma no soporta de forma nativa la restricción `EXCLUDE` de PostgreSQL ni las restricciones `CHECK`. Este directorio contendrá las migraciones generadas por `npx prisma migrate dev`; además de esas migraciones automáticas, es necesario agregar **manualmente** lo siguiente en una migración SQL (editando el archivo `migration.sql` generado, o creando una migración vacía con `npx prisma migrate dev --create-only`):
+Prisma no soporta de forma nativa la restricción `EXCLUDE` de PostgreSQL ni las restricciones `CHECK`. Este proyecto usa `npx prisma db push` para sincronizar `schema.prisma` con la base de datos (no `prisma migrate`, porque la base ya existía con tablas creadas antes de adoptar Prisma Migrate — ver decisión en la bitácora del Incremento 2). Por eso, lo que Prisma no puede expresar en el esquema se agrega **manualmente** en carpetas de migración con un `migration.sql`, aplicado directamente con `psql` (no con `prisma migrate deploy`, que exigiría "bautizar" el historial de migraciones de una base ya existente).
 
-## 1. Restricción de no superposición de citas (RN-02)
+## 1. Restricción de no superposición de citas (RN-02) — ✅ aplicada
 
-Requiere la extensión `btree_gist`:
+Carpeta: `20260918000000_agregar_restriccion_sin_superposicion/migration.sql`.
+
+`EXCLUDE` no tiene equivalente en el DSL de `schema.prisma` (Prisma no genera `CREATE EXTENSION` ni cláusulas `EXCLUDE USING gist`), así que no hay forma de que `prisma db push` la cree por sí solo. Requiere la extensión `btree_gist`:
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS btree_gist;
@@ -15,6 +17,10 @@ ALTER TABLE citas ADD CONSTRAINT sin_superposicion
   ) WHERE (estado <> 'cancelada');
 ```
 
+Esta restricción es la última línea de defensa contra citas superpuestas: aunque `GestorDeReservas.validarDisponibilidad` ya verifica disponibilidad en la capa de aplicación antes de crear una cita, dos peticiones concurrentes podrían pasar esa validación al mismo tiempo (ambas leen "libre" antes de que la otra escriba). La base de datos es quien tiene la última palabra y garantiza la exclusión mutua real. `GestorDeReservas.reservar` captura el error de Postgres que esta restricción produce (código `23P01`, `exclusion_violation`) y lo traduce a `DISPONIBILIDAD_OCUPADA` (409) — ver la prueba de concurrencia en `pruebas/integracion/citas.prueba.js` (Incremento 3).
+
+Verificado con `psql -U postgres -d turnia -c "\d citas"`: la restricción aparece listada como `"sin_superposicion" EXCLUDE USING gist (tsrange(inicia_en, termina_en) WITH &&) WHERE (estado <> 'cancelada'::"EstadoCita")`.
+
 ## 2. Restricciones CHECK del modelo de datos (sección 4 de ARQUITECTURA.md)
 
 ```sql
@@ -23,4 +29,4 @@ ALTER TABLE servicios ADD CONSTRAINT precio_no_negativo CHECK (precio >= 0);
 ALTER TABLE horarios_atencion ADD CONSTRAINT dia_semana_valido CHECK (dia_semana BETWEEN 0 AND 6);
 ```
 
-> Estado: pendiente de implementar. Se agregará cuando se genere la primera migración real contra una base de datos PostgreSQL disponible.
+> Estado: pendiente. No forma parte del Incremento 3 (reservas); la validación equivalente ya se hace en la capa de aplicación (`GestorDeServicios`, `GestorDeReservas`). Se agregará como migración manual cuando se trabaje explícitamente el endurecimiento de la base de datos.

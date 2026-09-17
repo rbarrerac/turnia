@@ -2,33 +2,249 @@
  * Módulo: GestorDeReservas — núcleo de negocio: disponibilidad, reservas y estados de citas
  * Proyecto: Turnia
  * Autor: Ronald
- * Fecha de creación: 15/09/2026
+ * Fecha de creación: 18/09/2026
  */
+
+import prisma from '../configuracion/baseDeDatos.js';
+import { calcularFin, generarIntervalos, haySuperposicion } from '../utilidades/fechas.js';
+
+const UN_DIA_EN_MS = 24 * 60 * 60 * 1000;
+const DOS_HORAS_EN_MS = 2 * 60 * 60 * 1000;
+
+// RN-04 — transiciones de estado permitidas.
+const TRANSICIONES_VALIDAS = {
+  pendiente: ['confirmada', 'cancelada'],
+  confirmada: ['completada', 'cancelada'],
+  completada: [],
+  cancelada: [],
+};
+
+function crearError(codigo, mensaje, codigoHttp) {
+  const error = new Error(mensaje);
+  error.codigo = codigo;
+  error.mensaje = mensaje;
+  error.codigoHttp = codigoHttp;
+  return error;
+}
+
+// Todos los cálculos de horario se hacen en UTC de forma consistente en todo el proyecto
+// (así se sembraron horarios_atencion y así se envían las fechas desde el frontend).
+function descomponerFecha(fecha) {
+  const texto = new Date(fecha).toISOString().slice(0, 10);
+  const [anio, mes, dia] = texto.split('-').map(Number);
+  const fechaUtc = new Date(Date.UTC(anio, mes - 1, dia));
+  return { fechaUtc, diaSemana: fechaUtc.getUTCDay() };
+}
+
+function combinarFechaConHora(fechaUtc, horaDeReferencia) {
+  const hora = new Date(horaDeReferencia);
+  return new Date(Date.UTC(
+    fechaUtc.getUTCFullYear(),
+    fechaUtc.getUTCMonth(),
+    fechaUtc.getUTCDate(),
+    hora.getUTCHours(),
+    hora.getUTCMinutes(),
+    hora.getUTCSeconds(),
+  ));
+}
+
+async function obtenerServicioOFallar(servicioId) {
+  const servicio = await prisma.servicios.findUnique({ where: { id: servicioId } });
+  if (!servicio) {
+    throw crearError('SERVICIO_NO_ENCONTRADO', 'El servicio solicitado no existe.', 404);
+  }
+  return servicio;
+}
+
+async function obtenerCitasDelDia(fechaUtc) {
+  return prisma.citas.findMany({
+    where: {
+      estado: { not: 'cancelada' },
+      inicia_en: { gte: fechaUtc, lt: new Date(fechaUtc.getTime() + UN_DIA_EN_MS) },
+    },
+  });
+}
 
 class GestorDeReservas {
   async calcularDisponibilidad(servicioId, fecha) {
-    // Pendiente de implementar (RN-02): horarios libres para un servicio y fecha.
-    return { exito: true, datos: [], mensaje: 'Pendiente de implementar' };
+    const servicio = await obtenerServicioOFallar(servicioId);
+    const { fechaUtc, diaSemana } = descomponerFecha(fecha);
+
+    const diaBloqueado = await prisma.dias_no_laborables.findUnique({ where: { fecha: fechaUtc } });
+    if (diaBloqueado) {
+      return [];
+    }
+
+    const horario = await prisma.horarios_atencion.findFirst({ where: { dia_semana: diaSemana } });
+    if (!horario || !horario.activo) {
+      return [];
+    }
+
+    const horaInicioJornada = combinarFechaConHora(fechaUtc, horario.hora_inicio);
+    const horaFinJornada = combinarFechaConHora(fechaUtc, horario.hora_fin);
+    const intervalosDelDia = generarIntervalos(
+      horaInicioJornada,
+      horaFinJornada,
+      servicio.duracion_minutos,
+    );
+
+    const citasDelDia = await obtenerCitasDelDia(fechaUtc);
+    const ahora = Date.now();
+
+    return intervalosDelDia.filter((inicioCandidato) => {
+      if (inicioCandidato.getTime() <= ahora) return false;
+
+      const finCandidato = calcularFin(inicioCandidato, servicio.duracion_minutos);
+      return !citasDelDia.some((cita) => haySuperposicion(
+        inicioCandidato,
+        finCandidato,
+        cita.inicia_en,
+        cita.termina_en,
+      ));
+    });
   }
 
   async validarDisponibilidad(servicioId, iniciaEn) {
-    // Pendiente de implementar (RN-02): horario de atención, días no laborables, superposición.
-    return { exito: true, datos: null, mensaje: 'Pendiente de implementar' };
+    const servicio = await obtenerServicioOFallar(servicioId);
+
+    const inicio = new Date(iniciaEn);
+    const fin = calcularFin(inicio, servicio.duracion_minutos);
+    const { fechaUtc, diaSemana } = descomponerFecha(inicio);
+
+    const diaBloqueado = await prisma.dias_no_laborables.findUnique({ where: { fecha: fechaUtc } });
+    if (diaBloqueado) {
+      throw crearError('FUERA_DE_HORARIO', 'Ese día el salón no atiende.', 400);
+    }
+
+    const horario = await prisma.horarios_atencion.findFirst({ where: { dia_semana: diaSemana } });
+    if (!horario || !horario.activo) {
+      throw crearError('FUERA_DE_HORARIO', 'Ese día el salón no atiende.', 400);
+    }
+
+    const horaInicioJornada = combinarFechaConHora(fechaUtc, horario.hora_inicio);
+    const horaFinJornada = combinarFechaConHora(fechaUtc, horario.hora_fin);
+
+    if (inicio.getTime() < horaInicioJornada.getTime() || fin.getTime() > horaFinJornada.getTime()) {
+      throw crearError(
+        'FUERA_DE_HORARIO',
+        'El horario solicitado está fuera del horario de atención.',
+        400,
+      );
+    }
+
+    const citasDelDia = await obtenerCitasDelDia(fechaUtc);
+    const seSuperpone = citasDelDia.some((cita) => haySuperposicion(
+      inicio,
+      fin,
+      cita.inicia_en,
+      cita.termina_en,
+    ));
+    if (seSuperpone) {
+      throw crearError('DISPONIBILIDAD_OCUPADA', 'El horario ya no está disponible.', 409);
+    }
+
+    return { terminaEn: fin, duracionMinutos: servicio.duracion_minutos };
   }
 
   async reservar(clientaId, servicioId, iniciaEn, notas) {
-    // Pendiente de implementar (RN-01, RN-02, RN-05).
-    return { exito: true, datos: null, mensaje: 'Pendiente de implementar' };
+    const { terminaEn } = await this.validarDisponibilidad(servicioId, iniciaEn);
+
+    let cita;
+    try {
+      cita = await prisma.citas.create({
+        data: {
+          clienta_id: clientaId,
+          servicio_id: servicioId,
+          inicia_en: new Date(iniciaEn),
+          termina_en: terminaEn,
+          estado: 'pendiente',
+          notas: notas || null,
+        },
+      });
+    } catch (error) {
+      // RN-02, condición de carrera: dos peticiones concurrentes pueden pasar la validación
+      // de aplicación (arriba) antes de que la otra escriba. La restricción EXCLUDE de la base
+      // de datos ("sin_superposicion") es quien tiene la última palabra en ese caso.
+      const mensaje = error?.message ?? '';
+      if (mensaje.includes('sin_superposicion') || mensaje.includes('23P01')) {
+        throw crearError('DISPONIBILIDAD_OCUPADA', 'El horario ya no está disponible.', 409);
+      }
+      throw error;
+    }
+
+    // RN-05: se registra la notificación de confirmación pendiente de envío.
+    // El envío real del correo se implementa en el Incremento 5 (GestorDeNotificaciones).
+    await prisma.notificaciones.create({
+      data: { cita_id: cita.id, tipo: 'confirmacion', exitoso: false },
+    });
+
+    return cita;
   }
 
   async cancelar(citaId, clientaId) {
-    // Pendiente de implementar (RN-03).
-    return { exito: true, datos: null, mensaje: 'Pendiente de implementar' };
+    const cita = await prisma.citas.findUnique({ where: { id: citaId } });
+    if (!cita) {
+      throw crearError('CITA_NO_ENCONTRADA', 'La cita no existe.', 404);
+    }
+
+    if (cita.clienta_id !== clientaId) {
+      throw crearError('SIN_PERMISO', 'No puede cancelar una cita que no es suya.', 403);
+    }
+
+    const msRestantes = cita.inicia_en.getTime() - Date.now();
+    if (msRestantes < DOS_HORAS_EN_MS) {
+      throw crearError(
+        'CANCELACION_TARDIA',
+        'Solo se puede cancelar con al menos 2 horas de anticipación.',
+        400,
+      );
+    }
+
+    return prisma.citas.update({ where: { id: citaId }, data: { estado: 'cancelada' } });
+  }
+
+  async obtenerHistorial(clientaId) {
+    return prisma.citas.findMany({
+      where: { clienta_id: clientaId },
+      orderBy: { inicia_en: 'desc' },
+      include: { servicio: true },
+    });
+  }
+
+  // Usado por GET /api/citas/agenda (administradora). La interfaz de agenda se
+  // construye en el Incremento 4; aquí solo se deja el endpoint funcional.
+  async obtenerAgenda(desde, hasta) {
+    return prisma.citas.findMany({
+      where: { inicia_en: { gte: new Date(desde), lt: new Date(hasta) } },
+      orderBy: { inicia_en: 'asc' },
+      include: {
+        servicio: true,
+        // select explícito: nunca exponer contrasena_hash en la agenda.
+        clienta: { select: { id: true, nombre: true, correo: true, telefono: true } },
+      },
+    });
   }
 
   async cambiarEstado(citaId, nuevoEstado) {
-    // Pendiente de implementar (RN-04).
-    return { exito: true, datos: null, mensaje: 'Pendiente de implementar' };
+    const cita = await prisma.citas.findUnique({ where: { id: citaId } });
+    if (!cita) {
+      throw crearError('CITA_NO_ENCONTRADA', 'La cita no existe.', 404);
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(TRANSICIONES_VALIDAS, nuevoEstado)) {
+      throw crearError('DATOS_INVALIDOS', 'El estado indicado no es válido.', 400);
+    }
+
+    const transicionesPermitidas = TRANSICIONES_VALIDAS[cita.estado];
+    if (!transicionesPermitidas.includes(nuevoEstado)) {
+      throw crearError(
+        'TRANSICION_INVALIDA',
+        `No se puede cambiar una cita de "${cita.estado}" a "${nuevoEstado}".`,
+        400,
+      );
+    }
+
+    return prisma.citas.update({ where: { id: citaId }, data: { estado: nuevoEstado } });
   }
 }
 
