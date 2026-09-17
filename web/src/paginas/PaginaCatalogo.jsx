@@ -1,14 +1,60 @@
 /**
  * Módulo: Página de catálogo de servicios
  * Proyecto: Turnia
- * Autor: Luis
- * Fecha de creación: 15/09/2026
+ * Autor: Ronald
+ * Fecha de creación: 17/09/2026
  */
 
+import { useEffect, useState } from 'react';
+import { obtener } from '../api/clienteApi.js';
+import TarjetaServicio from '../componentes/TarjetaServicio.jsx';
+
 function PaginaCatalogo() {
+  const [servicios, setServicios] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [mensajeError, setMensajeError] = useState(null);
+
+  useEffect(() => {
+    let sigueMontado = true;
+
+    obtener('/servicios')
+      .then((respuesta) => {
+        if (sigueMontado) setServicios(respuesta.datos ?? []);
+      })
+      .catch((error) => {
+        if (sigueMontado) setMensajeError(error.message);
+      })
+      .finally(() => {
+        if (sigueMontado) setCargando(false);
+      });
+
+    return () => {
+      sigueMontado = false;
+    };
+  }, []);
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Catálogo de servicios</h1>
+    <div className="max-w-5xl px-4 py-8 mx-auto">
+      <h1 className="text-2xl font-bold text-gray-800">Catálogo de servicios</h1>
+      <p className="mt-1 text-gray-500">Elige el servicio que deseas reservar.</p>
+
+      {cargando && <p className="mt-6 text-gray-500">Cargando servicios...</p>}
+
+      {mensajeError && (
+        <p className="p-3 mt-6 text-red-800 bg-red-100 rounded">
+          No se pudo cargar el catálogo: {mensajeError}
+        </p>
+      )}
+
+      {!cargando && !mensajeError && servicios.length === 0 && (
+        <p className="mt-6 text-gray-500">Aún no hay servicios disponibles.</p>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 mt-6 sm:grid-cols-2 lg:grid-cols-3">
+        {servicios.map((servicio) => (
+          <TarjetaServicio key={servicio.id} servicio={servicio} />
+        ))}
+      </div>
     </div>
   );
 }

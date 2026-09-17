@@ -2,15 +2,16 @@
  * Módulo: Generación y verificación de tokens JWT
  * Proyecto: Turnia
  * Autor: Ronald
- * Fecha de creación: 15/09/2026
+ * Fecha de creación: 18/09/2026
  */
 
+import jwt from 'jsonwebtoken';
+import { entorno } from '../configuracion/entorno.js';
+
 export function generarToken(cargaUtil) {
-  // Pendiente de implementar: firmar con jsonwebtoken usando entorno.jwtSecret.
-  return null;
+  return jwt.sign(cargaUtil, entorno.jwtSecret, { expiresIn: entorno.jwtExpiracion });
 }
 
 export function verificarToken(token) {
-  // Pendiente de implementar: verificar y decodificar el token JWT.
-  return null;
+  return jwt.verify(token, entorno.jwtSecret);
 }
