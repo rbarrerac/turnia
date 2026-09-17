@@ -1,8 +1,8 @@
 /**
  * Módulo: GestorDeServicios — CRUD del catálogo de servicios
  * Proyecto: Turnia
- * Autor: Luis
- * Fecha de creación: 17/09/2026
+ * Autor: Ronald
+ * Fecha de creación: 18/09/2026
  */
 
 import prisma from '../configuracion/baseDeDatos.js';
@@ -40,6 +40,13 @@ class GestorDeServicios {
   async listarActivos() {
     return prisma.servicios.findMany({
       where: { activo: true },
+      orderBy: { nombre: 'asc' },
+    });
+  }
+
+  // Uso de la administradora: incluye activos e inactivos (Incremento 4).
+  async listarTodos() {
+    return prisma.servicios.findMany({
       orderBy: { nombre: 'asc' },
     });
   }
@@ -104,6 +111,15 @@ class GestorDeServicios {
     return prisma.servicios.update({
       where: { id },
       data: { activo: false },
+    });
+  }
+
+  async reactivar(id) {
+    await this.obtenerPorId(id);
+
+    return prisma.servicios.update({
+      where: { id },
+      data: { activo: true },
     });
   }
 }

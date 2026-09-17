@@ -150,3 +150,93 @@ describe('DELETE /api/servicios/:id', () => {
     expect(respuesta.body.datos.activo).toBe(false);
   });
 });
+
+describe('PATCH /api/servicios/:id/reactivar', () => {
+  test('con administradora vuelve a poner activo = true', async () => {
+    const creado = await request(aplicacion)
+      .post('/api/servicios')
+      .set('Authorization', `Bearer ${tokenAdministradora}`)
+      .send({ nombre: `Servicio a reactivar ${Date.now()}`, duracion_minutos: 15, precio: 25 });
+    idsDeServiciosCreados.push(creado.body.datos.id);
+
+    await request(aplicacion)
+      .delete(`/api/servicios/${creado.body.datos.id}`)
+      .set('Authorization', `Bearer ${tokenAdministradora}`);
+
+    const respuesta = await request(aplicacion)
+      .patch(`/api/servicios/${creado.body.datos.id}/reactivar`)
+      .set('Authorization', `Bearer ${tokenAdministradora}`);
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.exito).toBe(true);
+    expect(respuesta.body.datos.activo).toBe(true);
+  });
+
+  test('sin token devuelve 401', async () => {
+    const respuesta = await request(aplicacion).patch(
+      `/api/servicios/${idServicioSemilla}/reactivar`,
+    );
+    expect(respuesta.status).toBe(401);
+  });
+});
+
+describe('GET /api/servicios/todos', () => {
+  test('con administradora incluye los servicios inactivos', async () => {
+    const creado = await request(aplicacion)
+      .post('/api/servicios')
+      .set('Authorization', `Bearer ${tokenAdministradora}`)
+      .send({
+        nombre: `Servicio inactivo para listado completo ${Date.now()}`,
+        duracion_minutos: 15,
+        precio: 25,
+      });
+    idsDeServiciosCreados.push(creado.body.datos.id);
+
+    await request(aplicacion)
+      .delete(`/api/servicios/${creado.body.datos.id}`)
+      .set('Authorization', `Bearer ${tokenAdministradora}`);
+
+    const respuesta = await request(aplicacion)
+      .get('/api/servicios/todos')
+      .set('Authorization', `Bearer ${tokenAdministradora}`);
+
+    expect(respuesta.status).toBe(200);
+    const servicioDevuelto = respuesta.body.datos.find((s) => s.id === creado.body.datos.id);
+    expect(servicioDevuelto).toBeDefined();
+    expect(servicioDevuelto.activo).toBe(false);
+  });
+
+  test('sin token devuelve 401', async () => {
+    const respuesta = await request(aplicacion).get('/api/servicios/todos');
+    expect(respuesta.status).toBe(401);
+  });
+
+  test('con token de clienta (no administradora) devuelve 403', async () => {
+    const respuesta = await request(aplicacion)
+      .get('/api/servicios/todos')
+      .set('Authorization', `Bearer ${tokenClienta}`);
+    expect(respuesta.status).toBe(403);
+  });
+});
+
+describe('GET /api/servicios (público) excluye inactivos', () => {
+  test('un servicio desactivado no aparece en el listado público sin token', async () => {
+    const creado = await request(aplicacion)
+      .post('/api/servicios')
+      .set('Authorization', `Bearer ${tokenAdministradora}`)
+      .send({
+        nombre: `Servicio oculto del público ${Date.now()}`,
+        duracion_minutos: 15,
+        precio: 25,
+      });
+    idsDeServiciosCreados.push(creado.body.datos.id);
+
+    await request(aplicacion)
+      .delete(`/api/servicios/${creado.body.datos.id}`)
+      .set('Authorization', `Bearer ${tokenAdministradora}`);
+
+    const respuestaPublica = await request(aplicacion).get('/api/servicios');
+    const idsPublicos = respuestaPublica.body.datos.map((servicio) => servicio.id);
+    expect(idsPublicos).not.toContain(creado.body.datos.id);
+  });
+});
