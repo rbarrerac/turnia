@@ -23,14 +23,37 @@ function BarraNavegacion() {
         Turnia
       </Link>
       <div className="flex flex-wrap items-center gap-4 text-sm">
-        <Link to="/servicios" className="text-gray-600 hover:text-pink-600">
-          Servicios
-        </Link>
+        {usuario?.rol === 'clienta' && (
+          <>
+            <Link to="/servicios" className="text-gray-600 hover:text-pink-600">
+              Servicios
+            </Link>
+            <Link to="/mis-citas" className="text-gray-600 hover:text-pink-600">
+              Mis citas
+            </Link>
+          </>
+        )}
+
         {usuario?.rol === 'administradora' && (
-          <Link to="/admin/servicios" className="text-gray-600 hover:text-pink-600">
-            Gestión de servicios
+          <>
+            <Link to="/admin/agenda" className="text-gray-600 hover:text-pink-600">
+              Agenda
+            </Link>
+            <Link to="/admin/servicios" className="text-gray-600 hover:text-pink-600">
+              Servicios
+            </Link>
+            <Link to="/admin/horario" className="text-gray-600 hover:text-pink-600">
+              Horario
+            </Link>
+          </>
+        )}
+
+        {!usuario && (
+          <Link to="/servicios" className="text-gray-600 hover:text-pink-600">
+            Servicios
           </Link>
         )}
+
         {usuario ? (
           <>
             <span className="text-gray-500">Hola, {usuario.nombre}</span>

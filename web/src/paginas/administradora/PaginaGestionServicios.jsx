@@ -1,12 +1,12 @@
 /**
  * Módulo: Página de gestión (CRUD) del catálogo de servicios
  * Proyecto: Turnia
- * Autor: Ronald
- * Fecha de creación: 17/09/2026
+ * Autor: Luis
+ * Fecha de creación: 18/09/2026
  */
 
 import { useEffect, useState } from 'react';
-import { obtener, enviar, actualizar, eliminar } from '../../api/clienteApi.js';
+import { obtener, enviar, actualizar, actualizarParcial, eliminar } from '../../api/clienteApi.js';
 
 const FORMULARIO_VACIO = { id: null, nombre: '', descripcion: '', duracion_minutos: '', precio: '' };
 
@@ -21,7 +21,7 @@ function PaginaGestionServicios() {
   async function cargarServicios() {
     setCargando(true);
     try {
-      const respuesta = await obtener('/servicios');
+      const respuesta = await obtener('/servicios/todos');
       setServicios(respuesta.datos ?? []);
     } catch (error) {
       setMensajeError(error.message);
@@ -96,6 +96,18 @@ function PaginaGestionServicios() {
     try {
       await eliminar(`/servicios/${servicio.id}`);
       setMensajeExito(`Servicio "${servicio.nombre}" desactivado.`);
+      await cargarServicios();
+    } catch (error) {
+      setMensajeError(error.message);
+    }
+  }
+
+  async function manejarReactivar(servicio) {
+    setMensajeError(null);
+    setMensajeExito(null);
+    try {
+      await actualizarParcial(`/servicios/${servicio.id}/reactivar`, {});
+      setMensajeExito(`Servicio "${servicio.nombre}" reactivado.`);
       await cargarServicios();
     } catch (error) {
       setMensajeError(error.message);
@@ -199,15 +211,30 @@ function PaginaGestionServicios() {
                 <th className="py-2 pr-2">Nombre</th>
                 <th className="py-2 pr-2">Duración</th>
                 <th className="py-2 pr-2">Precio</th>
+                <th className="py-2 pr-2">Estado</th>
                 <th className="py-2 pr-2">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {servicios.map((servicio) => (
-                <tr key={servicio.id} className="border-b border-gray-100">
+                <tr
+                  key={servicio.id}
+                  className={`border-b border-gray-100 ${servicio.activo ? '' : 'text-gray-400'}`}
+                >
                   <td className="py-2 pr-2">{servicio.nombre}</td>
                   <td className="py-2 pr-2">{servicio.duracion_minutos} min</td>
                   <td className="py-2 pr-2">Q{Number(servicio.precio).toFixed(2)}</td>
+                  <td className="py-2 pr-2">
+                    {servicio.activo ? (
+                      <span className="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded">
+                        Activo
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-200 rounded">
+                        Inactivo
+                      </span>
+                    )}
+                  </td>
                   <td className="py-2 pr-2">
                     <div className="flex gap-3">
                       <button
@@ -216,20 +243,29 @@ function PaginaGestionServicios() {
                       >
                         Editar
                       </button>
-                      <button
-                        onClick={() => manejarDesactivar(servicio)}
-                        className="text-red-600 hover:underline"
-                      >
-                        Desactivar
-                      </button>
+                      {servicio.activo ? (
+                        <button
+                          onClick={() => manejarDesactivar(servicio)}
+                          className="text-red-600 hover:underline"
+                        >
+                          Desactivar
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => manejarReactivar(servicio)}
+                          className="text-green-700 hover:underline"
+                        >
+                          Reactivar
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               ))}
               {servicios.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="py-4 text-center text-gray-500">
-                    No hay servicios activos.
+                  <td colSpan={5} className="py-4 text-center text-gray-500">
+                    No hay servicios registrados.
                   </td>
                 </tr>
               )}
