@@ -2,25 +2,62 @@
  * Módulo: Contexto global de sesión (usuaria autenticada)
  * Proyecto: Turnia
  * Autor: Luis
- * Fecha de creación: 15/09/2026
+ * Fecha de creación: 18/09/2026
  */
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { obtener, enviar, obtenerToken, guardarToken, borrarToken } from '../api/clienteApi.js';
 
 const ContextoAutenticacion = createContext(null);
 
 export function ProveedorAutenticacion({ children }) {
-  const [usuaria, setUsuaria] = useState(null);
+  const [usuario, setUsuario] = useState(null);
+  const [cargando, setCargando] = useState(true);
 
-  function iniciarSesion(_credenciales) {
-    // Pendiente de implementar.
+  useEffect(() => {
+    let sigueMontado = true;
+
+    async function restaurarSesion() {
+      if (!obtenerToken()) {
+        setCargando(false);
+        return;
+      }
+
+      try {
+        const respuesta = await obtener('/autenticacion/perfil');
+        if (sigueMontado) setUsuario(respuesta.datos);
+      } catch {
+        borrarToken();
+      } finally {
+        if (sigueMontado) setCargando(false);
+      }
+    }
+
+    restaurarSesion();
+
+    return () => {
+      sigueMontado = false;
+    };
+  }, []);
+
+  async function iniciarSesion(correo, contrasena) {
+    const respuesta = await enviar('/autenticacion/inicio-sesion', { correo, contrasena });
+    guardarToken(respuesta.datos.token);
+    setUsuario(respuesta.datos.usuario);
+    return respuesta.datos.usuario;
+  }
+
+  async function registrar(datos) {
+    const respuesta = await enviar('/autenticacion/registro', datos);
+    return respuesta.datos;
   }
 
   function cerrarSesion() {
-    // Pendiente de implementar.
+    borrarToken();
+    setUsuario(null);
   }
 
-  const valor = { usuaria, iniciarSesion, cerrarSesion };
+  const valor = { usuario, cargando, iniciarSesion, registrar, cerrarSesion };
 
   return <ContextoAutenticacion.Provider value={valor}>{children}</ContextoAutenticacion.Provider>;
 }

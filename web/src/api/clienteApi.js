@@ -26,8 +26,18 @@ async function peticion(ruta, opciones = {}) {
   return cuerpo;
 }
 
+const CLAVE_TOKEN = 'turnia_token';
+
 export function obtenerToken() {
-  return localStorage.getItem('turnia_token');
+  return localStorage.getItem(CLAVE_TOKEN);
+}
+
+export function guardarToken(token) {
+  localStorage.setItem(CLAVE_TOKEN, token);
+}
+
+export function borrarToken() {
+  localStorage.removeItem(CLAVE_TOKEN);
 }
 
 function encabezadosAutenticados() {
