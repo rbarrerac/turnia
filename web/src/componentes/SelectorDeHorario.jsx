@@ -2,12 +2,38 @@
  * Módulo: Selector de horario disponible para reservar una cita
  * Proyecto: Turnia
  * Autor: Luis
- * Fecha de creación: 15/09/2026
+ * Fecha de creación: 18/09/2026
  */
 
-function SelectorDeHorario({ horariosDisponibles }) {
-  // Pendiente de implementar.
-  return <div className="p-4 border rounded">SelectorDeHorario</div>;
+function formatearHora(horarioIso) {
+  const fecha = new Date(horarioIso);
+  const horas = String(fecha.getUTCHours()).padStart(2, '0');
+  const minutos = String(fecha.getUTCMinutes()).padStart(2, '0');
+  return `${horas}:${minutos}`;
+}
+
+function SelectorDeHorario({ horariosDisponibles, horaSeleccionada, onSeleccionar }) {
+  return (
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      {horariosDisponibles.map((horario) => {
+        const seleccionado = horario === horaSeleccionada;
+        return (
+          <button
+            key={horario}
+            type="button"
+            onClick={() => onSeleccionar(horario)}
+            className={`px-3 py-2 text-sm rounded border transition-colors ${
+              seleccionado
+                ? 'bg-pink-600 text-white border-pink-600'
+                : 'border-gray-300 text-gray-700 hover:border-pink-400'
+            }`}
+          >
+            {formatearHora(horario)}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export default SelectorDeHorario;
