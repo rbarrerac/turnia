@@ -118,3 +118,87 @@ describe('GET /api/autenticacion/perfil', () => {
     expect(respuesta.body.datos.correo).toBe(CORREO_NUEVO);
   });
 });
+
+describe('PATCH /api/autenticacion/perfil, /correo y /contrasena', () => {
+  const correoPerfil = `clienta.perfil.${MARCA_DE_TIEMPO}@turnia.gt`;
+  const correoExistente = `clienta.correo.existente.${MARCA_DE_TIEMPO}@turnia.gt`;
+  const contrasenaOriginal = 'ClaveOriginal123';
+  const contrasenaNueva = 'ClaveNueva456';
+  let tokenPerfil;
+
+  beforeAll(async () => {
+    correosDeUsuariosCreados.push(correoPerfil, correoExistente);
+
+    await request(aplicacion).post('/api/autenticacion/registro').send({
+      nombre: 'Clienta Perfil',
+      correo: correoPerfil,
+      contrasena: contrasenaOriginal,
+    });
+    await request(aplicacion).post('/api/autenticacion/registro').send({
+      nombre: 'Clienta Correo Existente',
+      correo: correoExistente,
+      contrasena: contrasenaOriginal,
+    });
+
+    const inicioSesion = await request(aplicacion).post('/api/autenticacion/inicio-sesion').send({
+      correo: correoPerfil,
+      contrasena: contrasenaOriginal,
+    });
+    tokenPerfil = inicioSesion.body.datos.token;
+  });
+
+  test('PATCH /perfil actualiza nombre y teléfono', async () => {
+    const respuesta = await request(aplicacion)
+      .patch('/api/autenticacion/perfil')
+      .set('Authorization', `Bearer ${tokenPerfil}`)
+      .send({ nombre: 'Clienta Perfil Actualizada', telefono: '55501234' });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.datos.nombre).toBe('Clienta Perfil Actualizada');
+    expect(respuesta.body.datos.telefono).toBe('55501234');
+  });
+
+  test('PATCH /perfil sin token devuelve 401', async () => {
+    const respuesta = await request(aplicacion)
+      .patch('/api/autenticacion/perfil')
+      .send({ nombre: 'Sin token' });
+
+    expect(respuesta.status).toBe(401);
+  });
+
+  test('PATCH /correo a uno que ya existe devuelve 409', async () => {
+    const respuesta = await request(aplicacion)
+      .patch('/api/autenticacion/correo')
+      .set('Authorization', `Bearer ${tokenPerfil}`)
+      .send({ correoNuevo: correoExistente, contrasenaActual: contrasenaOriginal });
+
+    expect(respuesta.status).toBe(409);
+    expect(respuesta.body.error.codigo).toBe('CORREO_DUPLICADO');
+  });
+
+  test('PATCH /contrasena con la contraseña actual incorrecta devuelve 401', async () => {
+    const respuesta = await request(aplicacion)
+      .patch('/api/autenticacion/contrasena')
+      .set('Authorization', `Bearer ${tokenPerfil}`)
+      .send({ contrasenaActual: 'ContrasenaIncorrecta', contrasenaNueva });
+
+    expect(respuesta.status).toBe(401);
+    expect(respuesta.body.error.codigo).toBe('CREDENCIALES_INVALIDAS');
+  });
+
+  test('PATCH /contrasena con la contraseña actual correcta funciona y permite iniciar sesión con la nueva', async () => {
+    const respuesta = await request(aplicacion)
+      .patch('/api/autenticacion/contrasena')
+      .set('Authorization', `Bearer ${tokenPerfil}`)
+      .send({ contrasenaActual: contrasenaOriginal, contrasenaNueva });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.exito).toBe(true);
+
+    const inicioSesionConNueva = await request(aplicacion)
+      .post('/api/autenticacion/inicio-sesion')
+      .send({ correo: correoPerfil, contrasena: contrasenaNueva });
+
+    expect(inicioSesionConNueva.status).toBe(200);
+  });
+});

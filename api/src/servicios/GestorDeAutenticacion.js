@@ -96,13 +96,90 @@ class GestorDeAutenticacion {
   }
 
   async obtenerPorId(id) {
-    const usuario = await prisma.usuarios.findUnique({ where: { id } });
+    const usuario = await this._obtenerOFallar(id);
+    return omitirContrasena(usuario);
+  }
 
+  async _obtenerOFallar(id) {
+    const usuario = await prisma.usuarios.findUnique({ where: { id } });
     if (!usuario) {
       throw crearError('USUARIO_NO_ENCONTRADO', 'La usuaria no existe.', 404);
     }
+    return usuario;
+  }
+
+  async actualizarPerfil(id, { nombre, telefono }) {
+    if (typeof nombre !== 'string' || nombre.trim().length === 0) {
+      throw crearError('DATOS_INVALIDOS', 'El nombre es obligatorio.', 400);
+    }
+
+    await this._obtenerOFallar(id);
+
+    const usuario = await prisma.usuarios.update({
+      where: { id },
+      data: { nombre: nombre.trim(), telefono: telefono?.trim() || null },
+    });
 
     return omitirContrasena(usuario);
+  }
+
+  async cambiarCorreo(id, { correoNuevo, contrasenaActual }) {
+    const usuario = await this._obtenerOFallar(id);
+
+    if (typeof contrasenaActual !== 'string' || contrasenaActual.length === 0) {
+      throw crearError('CREDENCIALES_INVALIDAS', 'La contraseña actual es incorrecta.', 401);
+    }
+    const coincide = await bcrypt.compare(contrasenaActual, usuario.contrasena_hash);
+    if (!coincide) {
+      throw crearError('CREDENCIALES_INVALIDAS', 'La contraseña actual es incorrecta.', 401);
+    }
+
+    if (!esCorreoValido(correoNuevo)) {
+      throw crearError('DATOS_INVALIDOS', 'El correo electrónico no es válido.', 400);
+    }
+    const correoNormalizado = correoNuevo.trim().toLowerCase();
+
+    const existente = await prisma.usuarios.findUnique({ where: { correo: correoNormalizado } });
+    if (existente && existente.id !== id) {
+      throw crearError('CORREO_DUPLICADO', 'Ya existe una cuenta registrada con ese correo.', 409);
+    }
+
+    try {
+      const actualizado = await prisma.usuarios.update({
+        where: { id },
+        data: { correo: correoNormalizado },
+      });
+      return omitirContrasena(actualizado);
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw crearError('CORREO_DUPLICADO', 'Ya existe una cuenta registrada con ese correo.', 409);
+      }
+      throw error;
+    }
+  }
+
+  async cambiarContrasena(id, { contrasenaActual, contrasenaNueva }) {
+    const usuario = await this._obtenerOFallar(id);
+
+    if (typeof contrasenaActual !== 'string' || contrasenaActual.length === 0) {
+      throw crearError('CREDENCIALES_INVALIDAS', 'La contraseña actual es incorrecta.', 401);
+    }
+    const coincide = await bcrypt.compare(contrasenaActual, usuario.contrasena_hash);
+    if (!coincide) {
+      throw crearError('CREDENCIALES_INVALIDAS', 'La contraseña actual es incorrecta.', 401);
+    }
+
+    if (!esContrasenaValida(contrasenaNueva)) {
+      throw crearError(
+        'DATOS_INVALIDOS',
+        'La nueva contraseña debe tener al menos 8 caracteres.',
+        400,
+      );
+    }
+
+    const contrasenaHash = await bcrypt.hash(contrasenaNueva, COSTE_HASH);
+    await prisma.usuarios.update({ where: { id }, data: { contrasena_hash: contrasenaHash } });
+    return true;
   }
 }
 

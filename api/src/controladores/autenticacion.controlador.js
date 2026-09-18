@@ -37,3 +37,38 @@ export async function obtenerPerfil(peticion, respuesta, siguiente) {
     siguiente(error);
   }
 }
+
+export async function actualizarPerfil(peticion, respuesta, siguiente) {
+  try {
+    const usuario = await gestorDeAutenticacion.actualizarPerfil(peticion.usuaria.id, peticion.body);
+    respuesta.json({ exito: true, datos: usuario });
+  } catch (error) {
+    siguiente(error);
+  }
+}
+
+export async function cambiarCorreo(peticion, respuesta, siguiente) {
+  try {
+    const { correoNuevo, contrasenaActual } = peticion.body;
+    const usuario = await gestorDeAutenticacion.cambiarCorreo(peticion.usuaria.id, {
+      correoNuevo,
+      contrasenaActual,
+    });
+    respuesta.json({ exito: true, datos: usuario });
+  } catch (error) {
+    siguiente(error);
+  }
+}
+
+export async function cambiarContrasena(peticion, respuesta, siguiente) {
+  try {
+    const { contrasenaActual, contrasenaNueva } = peticion.body;
+    await gestorDeAutenticacion.cambiarContrasena(peticion.usuaria.id, {
+      contrasenaActual,
+      contrasenaNueva,
+    });
+    respuesta.json({ exito: true, datos: { mensaje: 'Contraseña actualizada correctamente.' } });
+  } catch (error) {
+    siguiente(error);
+  }
+}

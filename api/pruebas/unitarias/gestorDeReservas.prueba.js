@@ -30,6 +30,44 @@ function horaEn(fechaUtc, horas, minutos = 0) {
   ));
 }
 
+// Crea una cita de prueba reintentando ante un conflicto real de la restricción
+// `sin_superposicion`. Un pre-chequeo (SELECT y luego INSERT) no es suficiente:
+// esta misma base de datos de desarrollo la usan otros archivos de prueba que
+// Jest ejecuta en procesos paralelos, así que dos "comprobar-luego-crear"
+// pueden intercalarse. Reaccionar al rechazo real de Postgres sí es seguro,
+// porque la propia base de datos resuelve la condición de carrera de forma atómica.
+async function crearCitaDePrueba({ clientaId, servicioId, inicioEnMinutos, duracionMinutos, estado }) {
+  let inicio = new Date(Date.now() + inicioEnMinutos * 60000);
+
+  // Paso de 1 minuto (no 5): varias pruebas de este archivo dependen de que la
+  // hora de inicio se quede dentro de cierto margen relativo a "ahora" (p. ej.
+  // "faltan menos de 2 horas"); un paso grande podría, tras varios reintentos,
+  // desplazar la cita fuera de ese margen y invalidar en silencio lo que la
+  // prueba intenta comprobar. Los offsets base de cada prueba dejan holgura
+  // de sobra (30+ minutos) para que esto nunca ocurra incluso con muchos reintentos.
+  for (let intento = 0; intento < 60; intento += 1) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      return await prisma.citas.create({
+        data: {
+          clienta_id: clientaId,
+          servicio_id: servicioId,
+          inicia_en: inicio,
+          termina_en: new Date(inicio.getTime() + duracionMinutos * 60000),
+          estado,
+        },
+      });
+    } catch (error) {
+      const mensaje = error?.message ?? '';
+      if (!mensaje.includes('sin_superposicion') && !mensaje.includes('23P01')) {
+        throw error;
+      }
+      inicio = new Date(inicio.getTime() + 60000);
+    }
+  }
+  throw new Error('No se pudo crear la cita de prueba tras varios reintentos (RN-08/cancelar).');
+}
+
 // Lunes de la próxima semana: día laborable garantizado por la semilla (lun–sáb 9:00–18:00).
 const diaLaborable = proximoDiaSemana(1, 1);
 // Martes distinto, usado solo para la prueba de día no laborable (no interfiere con el lunes).
@@ -159,14 +197,14 @@ describe('reservar', () => {
 
 describe('cancelar', () => {
   test('cancelar con menos de 2 horas de anticipación lanza CANCELACION_TARDIA', async () => {
-    const citaProximaAEmpezar = await prisma.citas.create({
-      data: {
-        clienta_id: clientaA.id,
-        servicio_id: servicioPrueba.id,
-        inicia_en: new Date(Date.now() + 60 * 60000),
-        termina_en: new Date(Date.now() + 90 * 60000),
-        estado: 'pendiente',
-      },
+    // 30 min desde ahora: con hasta 60 reintentos de 1 min, el peor caso (90 min)
+    // se queda muy por debajo del límite de 120 min (2 h) de RN-03.
+    const citaProximaAEmpezar = await crearCitaDePrueba({
+      clientaId: clientaA.id,
+      servicioId: servicioPrueba.id,
+      inicioEnMinutos: 30,
+      duracionMinutos: 30,
+      estado: 'pendiente',
     });
     idsDeCitasCreadas.push(citaProximaAEmpezar.id);
 
@@ -177,14 +215,12 @@ describe('cancelar', () => {
   });
 
   test('cancelar una cita ajena responde 403', async () => {
-    const citaDeClientaA = await prisma.citas.create({
-      data: {
-        clienta_id: clientaA.id,
-        servicio_id: servicioPrueba.id,
-        inicia_en: new Date(Date.now() + 5 * 24 * 60 * 60000),
-        termina_en: new Date(Date.now() + 5 * 24 * 60 * 60000 + 30 * 60000),
-        estado: 'pendiente',
-      },
+    const citaDeClientaA = await crearCitaDePrueba({
+      clientaId: clientaA.id,
+      servicioId: servicioPrueba.id,
+      inicioEnMinutos: 5 * 24 * 60,
+      duracionMinutos: 30,
+      estado: 'pendiente',
     });
     idsDeCitasCreadas.push(citaDeClientaA.id);
 
@@ -195,14 +231,12 @@ describe('cancelar', () => {
   });
 
   test('cancelar con 2 horas o más de anticipación deja la cita en estado cancelada', async () => {
-    const citaLejana = await prisma.citas.create({
-      data: {
-        clienta_id: clientaA.id,
-        servicio_id: servicioPrueba.id,
-        inicia_en: new Date(Date.now() + 6 * 24 * 60 * 60000),
-        termina_en: new Date(Date.now() + 6 * 24 * 60 * 60000 + 30 * 60000),
-        estado: 'pendiente',
-      },
+    const citaLejana = await crearCitaDePrueba({
+      clientaId: clientaA.id,
+      servicioId: servicioPrueba.id,
+      inicioEnMinutos: 6 * 24 * 60,
+      duracionMinutos: 30,
+      estado: 'pendiente',
     });
     idsDeCitasCreadas.push(citaLejana.id);
 
@@ -213,14 +247,12 @@ describe('cancelar', () => {
 
 describe('cambiarEstado', () => {
   test('una transición de estado inválida falla', async () => {
-    const citaCancelada = await prisma.citas.create({
-      data: {
-        clienta_id: clientaA.id,
-        servicio_id: servicioPrueba.id,
-        inicia_en: new Date(Date.now() + 7 * 24 * 60 * 60000),
-        termina_en: new Date(Date.now() + 7 * 24 * 60 * 60000 + 30 * 60000),
-        estado: 'cancelada',
-      },
+    const citaCancelada = await crearCitaDePrueba({
+      clientaId: clientaA.id,
+      servicioId: servicioPrueba.id,
+      inicioEnMinutos: 7 * 24 * 60,
+      duracionMinutos: 30,
+      estado: 'cancelada',
     });
     idsDeCitasCreadas.push(citaCancelada.id);
 
@@ -231,19 +263,51 @@ describe('cambiarEstado', () => {
   });
 
   test('una transición de estado válida (pendiente -> confirmada) se aplica', async () => {
-    const citaPendiente = await prisma.citas.create({
-      data: {
-        clienta_id: clientaA.id,
-        servicio_id: servicioPrueba.id,
-        inicia_en: new Date(Date.now() + 8 * 24 * 60 * 60000),
-        termina_en: new Date(Date.now() + 8 * 24 * 60 * 60000 + 30 * 60000),
-        estado: 'pendiente',
-      },
+    const citaPendiente = await crearCitaDePrueba({
+      clientaId: clientaA.id,
+      servicioId: servicioPrueba.id,
+      inicioEnMinutos: 8 * 24 * 60,
+      duracionMinutos: 30,
+      estado: 'pendiente',
     });
     idsDeCitasCreadas.push(citaPendiente.id);
 
     const actualizada = await gestor.cambiarEstado(citaPendiente.id, 'confirmada');
     expect(actualizada.estado).toBe('confirmada');
+  });
+
+  test('RN-08: completar antes de que pasen 10 minutos desde el inicio lanza COMPLETADO_ANTICIPADO', async () => {
+    // Empezó hace 5 minutos: aún no se cumplen los 10 minutos de RN-08.
+    const citaRecienIniciada = await crearCitaDePrueba({
+      clientaId: clientaA.id,
+      servicioId: servicioPrueba.id,
+      inicioEnMinutos: -5,
+      duracionMinutos: servicioPrueba.duracion_minutos,
+      estado: 'confirmada',
+    });
+    idsDeCitasCreadas.push(citaRecienIniciada.id);
+
+    await expect(gestor.cambiarEstado(citaRecienIniciada.id, 'completada')).rejects.toMatchObject({
+      codigo: 'COMPLETADO_ANTICIPADO',
+      codigoHttp: 400,
+    });
+  });
+
+  test('RN-08: completar 10 minutos o más después del inicio funciona', async () => {
+    // Empezó hace 90 minutos: muy por delante de los 10 minutos que exige RN-08.
+    // Los reintentos por conflicto solo avanzan el reloj hacia adelante, así que
+    // con hasta 60 min de holgura el peor caso (-30 min) sigue después del límite.
+    const citaConTiempoSuficiente = await crearCitaDePrueba({
+      clientaId: clientaA.id,
+      servicioId: servicioPrueba.id,
+      inicioEnMinutos: -90,
+      duracionMinutos: servicioPrueba.duracion_minutos,
+      estado: 'confirmada',
+    });
+    idsDeCitasCreadas.push(citaConTiempoSuficiente.id);
+
+    const actualizada = await gestor.cambiarEstado(citaConTiempoSuficiente.id, 'completada');
+    expect(actualizada.estado).toBe('completada');
   });
 });
 
