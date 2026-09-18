@@ -1,8 +1,8 @@
 /**
- * Módulo: Script de semilla — carga el catálogo de servicios y la usuaria administradora
+ * Módulo: Script de semilla — catálogo de servicios, horario, administradora y clienta
  * Proyecto: Turnia
- * Autor: Luis
- * Fecha de creación: 17/09/2026
+ * Autor: Ronald
+ * Fecha de creación: 18/09/2026
  */
 
 import 'dotenv/config';
@@ -63,6 +63,37 @@ async function sembrarAdministradora() {
   console.log(`Semilla: usuaria administradora creada (${correo}).`);
 }
 
+async function sembrarClienta() {
+  const correo = process.env.CORREO_CLIENTA ?? 'clienta@turnia.gt';
+  let contrasena = process.env.CONTRASENA_CLIENTA;
+
+  if (!contrasena) {
+    contrasena = 'Clienta1234';
+    console.warn(
+      'ADVERTENCIA: la variable de entorno CONTRASENA_CLIENTA no está definida. ' +
+        'Se usará "Clienta1234" únicamente como contraseña de desarrollo. ' +
+        'Defina CONTRASENA_CLIENTA en api/.env y cambie esta contraseña antes de producción.',
+    );
+  }
+
+  const existente = await prisma.usuarios.findUnique({ where: { correo } });
+  if (existente) {
+    console.log(`Semilla: la usuaria clienta ya existe (${correo}); no se duplica.`);
+    return;
+  }
+
+  const contrasenaHash = await bcrypt.hash(contrasena, 10);
+  await prisma.usuarios.create({
+    data: {
+      nombre: 'Clienta de Prueba',
+      correo,
+      contrasena_hash: contrasenaHash,
+      rol: 'clienta',
+    },
+  });
+  console.log(`Semilla: usuaria clienta creada (${correo}).`);
+}
+
 async function sembrarCatalogoDeServicios() {
   let creados = 0;
 
@@ -106,6 +137,7 @@ async function principal() {
   console.log('Iniciando semilla de Turnia...');
 
   await sembrarAdministradora();
+  await sembrarClienta();
   await sembrarCatalogoDeServicios();
   await sembrarHorarioDeAtencion();
 
