@@ -1,7 +1,7 @@
 /**
  * Módulo: GestorDeReservas — núcleo de negocio: disponibilidad, reservas y estados de citas
  * Proyecto: Turnia
- * Autor: Ronald
+ * Autor: Luis
  * Fecha de creación: 18/09/2026
  */
 
@@ -68,7 +68,12 @@ async function obtenerCitasDelDia(fechaUtc) {
 }
 
 class GestorDeReservas {
-  constructor() {
+  // `reloj` es la función usada para obtener "ahora". Por defecto usa el reloj real
+  // (() => new Date()), como en producción; las pruebas unitarias son las únicas que
+  // lo sobreescriben, con un instante fijo, para que RN-03/RN-08 y el filtrado de
+  // `calcularDisponibilidad` sean reproducibles sin depender de la hora real del reloj.
+  constructor(reloj = () => new Date()) {
+    this.reloj = reloj;
     this.gestorDeNotificaciones = new GestorDeNotificaciones();
   }
 
@@ -95,7 +100,7 @@ class GestorDeReservas {
     );
 
     const citasDelDia = await obtenerCitasDelDia(fechaUtc);
-    const ahora = Date.now();
+    const ahora = this.reloj().getTime();
 
     return intervalosDelDia.filter((inicioCandidato) => {
       if (inicioCandidato.getTime() <= ahora) return false;
@@ -200,7 +205,7 @@ class GestorDeReservas {
       throw crearError('SIN_PERMISO', 'No puede cancelar una cita que no es suya.', 403);
     }
 
-    const msRestantes = cita.inicia_en.getTime() - Date.now();
+    const msRestantes = cita.inicia_en.getTime() - this.reloj().getTime();
     if (msRestantes < DOS_HORAS_EN_MS) {
       throw crearError(
         'CANCELACION_TARDIA',
@@ -256,7 +261,7 @@ class GestorDeReservas {
     // RN-08: no se puede completar una cita hasta que hayan pasado al menos 10
     // minutos desde su hora de inicio.
     if (nuevoEstado === 'completada') {
-      const msTranscurridos = Date.now() - cita.inicia_en.getTime();
+      const msTranscurridos = this.reloj().getTime() - cita.inicia_en.getTime();
       if (msTranscurridos < DIEZ_MINUTOS_EN_MS) {
         throw crearError(
           'COMPLETADO_ANTICIPADO',

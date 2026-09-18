@@ -1,7 +1,7 @@
 /**
  * Módulo: Pruebas unitarias de GestorDeReservas
  * Proyecto: Turnia
- * Autor: Ronald
+ * Autor: Luis
  * Fecha de creación: 18/09/2026
  */
 
@@ -36,8 +36,15 @@ function horaEn(fechaUtc, horas, minutos = 0) {
 // Jest ejecuta en procesos paralelos, así que dos "comprobar-luego-crear"
 // pueden intercalarse. Reaccionar al rechazo real de Postgres sí es seguro,
 // porque la propia base de datos resuelve la condición de carrera de forma atómica.
-async function crearCitaDePrueba({ clientaId, servicioId, inicioEnMinutos, duracionMinutos, estado }) {
-  let inicio = new Date(Date.now() + inicioEnMinutos * 60000);
+async function crearCitaDePrueba({
+  clientaId,
+  servicioId,
+  inicioEnMinutos,
+  duracionMinutos,
+  estado,
+  instanteBase = new Date(),
+}) {
+  let inicio = new Date(instanteBase.getTime() + inicioEnMinutos * 60000);
 
   // Paso de 1 minuto (no 5): varias pruebas de este archivo dependen de que la
   // hora de inicio se quede dentro de cierto margen relativo a "ahora" (p. ej.
@@ -72,6 +79,15 @@ async function crearCitaDePrueba({ clientaId, servicioId, inicioEnMinutos, durac
 const diaLaborable = proximoDiaSemana(1, 1);
 // Martes distinto, usado solo para la prueba de día no laborable (no interfiere con el lunes).
 const diaParaBloquear = proximoDiaSemana(2, 1);
+
+// Instante "ahora" congelado para la prueba de RN-03 (cancelación tardía): 20:00 del
+// mismo lunes laborable, fuera de los rangos 9:00–9:30 y 10:00–10:30 que ya ocupan las
+// pruebas de "reservar" en ese mismo día. Al fijarlo aquí (en vez de usar Date.now()),
+// la cita que se crea y la comparación "faltan menos de 2 horas" de GestorDeReservas.cancelar
+// (ver `reloj` inyectado abajo) siempre usan el mismo instante, sin importar el día ni la
+// hora real en que se ejecute la suite.
+const AHORA_CONGELADA = horaEn(diaLaborable, 20, 0);
+const gestorConRelojCongelado = new GestorDeReservas(() => new Date(AHORA_CONGELADA));
 
 let servicioPrueba;
 let clientaA;
@@ -197,18 +213,24 @@ describe('reservar', () => {
 
 describe('cancelar', () => {
   test('cancelar con menos de 2 horas de anticipación lanza CANCELACION_TARDIA', async () => {
-    // 30 min desde ahora: con hasta 60 reintentos de 1 min, el peor caso (90 min)
-    // se queda muy por debajo del límite de 120 min (2 h) de RN-03.
+    // "Ahora" congelado a AHORA_CONGELADA (ver arriba) y cita 30 min después: con hasta
+    // 60 reintentos de 1 min, el peor caso (90 min) se queda muy por debajo del límite de
+    // 120 min (2 h) de RN-03. `gestorConRelojCongelado` usa ese mismo instante fijo como
+    // "ahora" al calcular cuánto falta para la cita, así que el resultado no depende del
+    // día ni la hora real en que se ejecute la prueba.
     const citaProximaAEmpezar = await crearCitaDePrueba({
       clientaId: clientaA.id,
       servicioId: servicioPrueba.id,
       inicioEnMinutos: 30,
       duracionMinutos: 30,
       estado: 'pendiente',
+      instanteBase: AHORA_CONGELADA,
     });
     idsDeCitasCreadas.push(citaProximaAEmpezar.id);
 
-    await expect(gestor.cancelar(citaProximaAEmpezar.id, clientaA.id)).rejects.toMatchObject({
+    await expect(
+      gestorConRelojCongelado.cancelar(citaProximaAEmpezar.id, clientaA.id),
+    ).rejects.toMatchObject({
       codigo: 'CANCELACION_TARDIA',
       codigoHttp: 400,
     });

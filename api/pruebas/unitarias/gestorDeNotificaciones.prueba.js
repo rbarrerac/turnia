@@ -1,7 +1,7 @@
 /**
  * Módulo: Pruebas unitarias de GestorDeNotificaciones y la tarea de recordatorios
  * Proyecto: Turnia
- * Autor: Ronald
+ * Autor: Luis
  * Fecha de creación: 18/09/2026
  */
 
@@ -14,6 +14,20 @@ const gestor = new GestorDeNotificaciones();
 let servicioPrueba;
 let clientaPrueba;
 const idsDeCitasCreadas = [];
+
+// Instante fijo, lejos de cualquier otra cita creada por esta u otras suites de prueba:
+// se calcula una sola vez al cargar el archivo, sumando 45 días a la medianoche UTC de
+// "hoy". `GestorDeNotificaciones.enviarRecordatorio` no valida ninguna regla de horario
+// (a diferencia de RN-03/RN-08 en GestorDeReservas), así que aquí lo único que debe dejar
+// de depender del reloj real es el punto de partida de la cita de prueba: usar un instante
+// fijo (en vez de Date.now()) evita que la creación de la cita compita por el mismo hueco
+// de tiempo que otras pruebas "ahora + N minutos" cuando la suite corre en paralelo.
+function instanteFijoEnElFuturo(diasEnElFuturo, horas) {
+  const hoy = new Date();
+  const medianocheUtc = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate()));
+  return new Date(medianocheUtc.getTime() + diasEnElFuturo * 24 * 60 * 60000 + horas * 60 * 60000);
+}
+const INSTANTE_FIJO_RECORDATORIO = instanteFijoEnElFuturo(45, 10);
 
 beforeAll(async () => {
   servicioPrueba = await prisma.servicios.create({
@@ -52,8 +66,8 @@ afterAll(async () => {
 // de datos de desarrollo, así que dos "comprobar-luego-crear" pueden intercalarse.
 // Reaccionar al rechazo real de Postgres sí es seguro: la base de datos resuelve
 // la condición de carrera de forma atómica.
-async function crearCita({ inicioEnMinutos, estado, duracionMinutos = 30 }) {
-  let inicio = new Date(Date.now() + inicioEnMinutos * 60000);
+async function crearCita({ inicioEnMinutos, estado, duracionMinutos = 30, instanteBase = new Date() }) {
+  let inicio = new Date(instanteBase.getTime() + inicioEnMinutos * 60000);
 
   // Paso de 1 minuto: todos los offsets usados en este archivo tienen holgura
   // de varias horas respecto a los límites que importan (ventana de 24 h de
@@ -99,7 +113,14 @@ describe('GestorDeNotificaciones', () => {
   });
 
   test('enviarRecordatorio registra una notificación de tipo recordatorio', async () => {
-    const cita = await crearCita({ inicioEnMinutos: 120, estado: 'confirmada' });
+    // `enviarRecordatorio` no valida ninguna regla de horario: solo importa que la cita
+    // exista. Se ancla a INSTANTE_FIJO_RECORDATORIO (no a "ahora") para que la creación
+    // sea reproducible sin importar el día ni la hora real de ejecución.
+    const cita = await crearCita({
+      inicioEnMinutos: 120,
+      estado: 'confirmada',
+      instanteBase: INSTANTE_FIJO_RECORDATORIO,
+    });
 
     const exitoso = await gestor.enviarRecordatorio(cita);
     expect(exitoso).toBe(true);
