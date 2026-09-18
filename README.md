@@ -25,7 +25,7 @@ Proyecto del curso de **Aseguramiento de la Calidad del Software** — Universid
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/<usuario>/turnia.git
+git clone https://github.com/rbarrerac/turnia.git
 cd turnia
 ```
 
@@ -106,8 +106,8 @@ Se crean automáticamente al ejecutar `npm run preparar` (los valores salen de t
 
 | Rol | Correo | Contraseña |
 |---|---|---|
-| Administradora | `admin@turnia.gt` | `Admin1234Dev!` |
-| Clienta | `clienta@turnia.gt` | `Clienta1234Dev!` |
+| Administradora    | `admin@turnia.gt`     | `Admin1234Dev!`   |
+| Clienta           | `clienta@turnia.gt`   | `Clienta1234Dev!` |
 
 > Puedes cambiar estos valores en `api/.env` (variables `CORREO_ADMIN`, `CONTRASENA_ADMIN`, `CORREO_CLIENTA`, `CONTRASENA_CLIENTA`) antes de correr `npm run preparar` o `npm run semilla`.
 
