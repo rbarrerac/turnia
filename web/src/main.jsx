@@ -10,14 +10,17 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import { ProveedorAutenticacion } from './contexto/ContextoAutenticacion.jsx';
+import { ProveedorTema } from './contexto/ContextoTema.jsx';
 import './estilos/indice.css';
 
 ReactDOM.createRoot(document.getElementById('raiz')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <ProveedorAutenticacion>
-        <App />
-      </ProveedorAutenticacion>
-    </BrowserRouter>
+    <ProveedorTema>
+      <BrowserRouter>
+        <ProveedorAutenticacion>
+          <App />
+        </ProveedorAutenticacion>
+      </BrowserRouter>
+    </ProveedorTema>
   </React.StrictMode>,
 );

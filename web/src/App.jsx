@@ -14,9 +14,14 @@ import PaginaInicioSesion from './paginas/PaginaInicioSesion.jsx';
 import PaginaCatalogo from './paginas/PaginaCatalogo.jsx';
 import PaginaReservar from './paginas/PaginaReservar.jsx';
 import PaginaMisCitas from './paginas/PaginaMisCitas.jsx';
+import PaginaTrabajos from './paginas/PaginaTrabajos.jsx';
+import PaginaPerfil from './paginas/PaginaPerfil.jsx';
+import PaginaSeguridad from './paginas/PaginaSeguridad.jsx';
+import PaginaPanelAdmin from './paginas/administradora/PaginaPanelAdmin.jsx';
 import PaginaAgenda from './paginas/administradora/PaginaAgenda.jsx';
 import PaginaGestionServicios from './paginas/administradora/PaginaGestionServicios.jsx';
 import PaginaConfiguracionHorario from './paginas/administradora/PaginaConfiguracionHorario.jsx';
+import PaginaContenidoAdmin from './paginas/administradora/PaginaContenidoAdmin.jsx';
 
 function App() {
   return (
@@ -27,6 +32,7 @@ function App() {
         <Route path="/registro" element={<PaginaRegistro />} />
         <Route path="/inicio-sesion" element={<PaginaInicioSesion />} />
         <Route path="/servicios" element={<PaginaCatalogo />} />
+        <Route path="/trabajos" element={<PaginaTrabajos />} />
         <Route
           path="/reservar/:servicioId"
           element={
@@ -40,6 +46,30 @@ function App() {
           element={
             <RutaProtegida rolRequerido="clienta">
               <PaginaMisCitas />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/perfil"
+          element={
+            <RutaProtegida>
+              <PaginaPerfil />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/seguridad"
+          element={
+            <RutaProtegida>
+              <PaginaSeguridad />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RutaProtegida rolRequerido="administradora">
+              <PaginaPanelAdmin />
             </RutaProtegida>
           }
         />
@@ -64,6 +94,14 @@ function App() {
           element={
             <RutaProtegida rolRequerido="administradora">
               <PaginaConfiguracionHorario />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin/contenido"
+          element={
+            <RutaProtegida rolRequerido="administradora">
+              <PaginaContenidoAdmin />
             </RutaProtegida>
           }
         />

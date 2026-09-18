@@ -57,7 +57,11 @@ export function ProveedorAutenticacion({ children }) {
     setUsuario(null);
   }
 
-  const valor = { usuario, cargando, iniciarSesion, registrar, cerrarSesion };
+  function actualizarUsuario(datosParciales) {
+    setUsuario((anterior) => (anterior ? { ...anterior, ...datosParciales } : anterior));
+  }
+
+  const valor = { usuario, cargando, iniciarSesion, registrar, cerrarSesion, actualizarUsuario };
 
   return <ContextoAutenticacion.Provider value={valor}>{children}</ContextoAutenticacion.Provider>;
 }
