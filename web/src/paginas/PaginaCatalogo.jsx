@@ -35,19 +35,19 @@ function PaginaCatalogo() {
 
   return (
     <div className="max-w-5xl px-4 py-8 mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800">Catálogo de servicios</h1>
-      <p className="mt-1 text-gray-500">Elige el servicio que deseas reservar.</p>
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Catálogo de servicios</h1>
+      <p className="mt-1 text-gray-500 dark:text-gray-400">Elige el servicio que deseas reservar.</p>
 
-      {cargando && <p className="mt-6 text-gray-500">Cargando servicios...</p>}
+      {cargando && <p className="mt-6 text-gray-500 dark:text-gray-400">Cargando servicios...</p>}
 
       {mensajeError && (
-        <p className="p-3 mt-6 text-red-800 bg-red-100 rounded">
+        <p className="p-3 mt-6 text-red-800 bg-red-100 rounded dark:bg-red-900 dark:text-red-200">
           No se pudo cargar el catálogo: {mensajeError}
         </p>
       )}
 
       {!cargando && !mensajeError && servicios.length === 0 && (
-        <p className="mt-6 text-gray-500">Aún no hay servicios disponibles.</p>
+        <p className="mt-6 text-gray-500 dark:text-gray-400">Aún no hay servicios disponibles.</p>
       )}
 
       <div className="grid grid-cols-1 gap-4 mt-6 sm:grid-cols-2 lg:grid-cols-3">

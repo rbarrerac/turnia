@@ -85,26 +85,26 @@ function PaginaMisCitas() {
 
   return (
     <div className="max-w-3xl px-4 py-8 mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800">Mis citas</h1>
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Mis citas</h1>
 
       {mensajeExito && (
-        <p className="p-3 mt-4 text-sm text-green-800 bg-green-100 rounded">{mensajeExito}</p>
+        <p className="p-3 mt-4 text-sm text-green-800 bg-green-100 rounded dark:bg-green-900 dark:text-green-200">{mensajeExito}</p>
       )}
-      {mensajeError && <p className="p-3 mt-4 text-sm text-red-800 bg-red-100 rounded">{mensajeError}</p>}
+      {mensajeError && <p className="p-3 mt-4 text-sm text-red-800 bg-red-100 rounded dark:bg-red-900 dark:text-red-200">{mensajeError}</p>}
 
-      {cargando && <p className="mt-6 text-gray-500">Cargando tus citas...</p>}
+      {cargando && <p className="mt-6 text-gray-500 dark:text-gray-400">Cargando tus citas...</p>}
 
       {!cargando && citas.length === 0 && (
-        <p className="mt-6 text-gray-500">Todavía no tienes citas reservadas.</p>
+        <p className="mt-6 text-gray-500 dark:text-gray-400">Todavía no tienes citas reservadas.</p>
       )}
 
       <ul className="mt-6 space-y-3">
         {citas.map((cita) => (
-          <li key={cita.id} className="p-4 bg-white border border-gray-200 rounded-lg">
+          <li key={cita.id} className="p-4 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="font-semibold text-gray-800">{cita.servicio?.nombre ?? 'Servicio'}</p>
-                <p className="text-sm text-gray-500">{formatearFechaHora(cita.inicia_en)}</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-100">{cita.servicio?.nombre ?? 'Servicio'}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{formatearFechaHora(cita.inicia_en)}</p>
               </div>
               <span
                 className={`px-2 py-1 text-xs font-medium rounded ${ESTILOS_ESTADO[cita.estado] ?? ''}`}
@@ -118,14 +118,14 @@ function PaginaMisCitas() {
                 type="button"
                 onClick={() => manejarCancelar(cita)}
                 disabled={cancelandoId === cita.id}
-                className="px-3 py-1 mt-3 text-sm text-red-700 border border-red-300 rounded hover:bg-red-50 disabled:opacity-50"
+                className="px-3 py-1 mt-3 text-sm text-red-700 border border-red-300 rounded hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-gray-700 disabled:opacity-50"
               >
                 {cancelandoId === cita.id ? 'Cancelando...' : 'Cancelar'}
               </button>
             )}
 
             {!esCancelable(cita) && cita.estado !== 'cancelada' && cita.estado !== 'completada' && (
-              <p className="mt-3 text-xs text-gray-400">
+              <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
                 Ya no se puede cancelar: faltan menos de 2 horas para la cita.
               </p>
             )}

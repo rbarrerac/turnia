@@ -112,26 +112,28 @@ function PaginaAgenda() {
 
   return (
     <div className="max-w-4xl px-4 py-8 mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800">Agenda</h1>
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Agenda</h1>
 
       {mensajeExito && (
-        <p className="p-3 mt-4 text-sm text-green-800 bg-green-100 rounded">{mensajeExito}</p>
+        <p className="p-3 mt-4 text-sm text-green-800 bg-green-100 rounded dark:bg-green-900 dark:text-green-200">
+          {mensajeExito}
+        </p>
       )}
-      {mensajeError && <p className="p-3 mt-4 text-sm text-red-800 bg-red-100 rounded">{mensajeError}</p>}
+      {mensajeError && <p className="p-3 mt-4 text-sm text-red-800 bg-red-100 rounded dark:bg-red-900 dark:text-red-200">{mensajeError}</p>}
 
       <div className="flex flex-wrap items-center gap-3 mt-6">
-        <div className="flex overflow-hidden border border-gray-300 rounded">
+        <div className="flex overflow-hidden border border-gray-300 rounded dark:border-gray-600">
           <button
             type="button"
             onClick={() => setModo('dia')}
-            className={`px-3 py-1 text-sm ${modo === 'dia' ? 'bg-pink-600 text-white' : 'bg-white text-gray-700'}`}
+            className={`px-3 py-1 text-sm ${modo === 'dia' ? 'bg-pink-600 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-200'}`}
           >
             Día
           </button>
           <button
             type="button"
             onClick={() => setModo('semana')}
-            className={`px-3 py-1 text-sm ${modo === 'semana' ? 'bg-pink-600 text-white' : 'bg-white text-gray-700'}`}
+            className={`px-3 py-1 text-sm ${modo === 'semana' ? 'bg-pink-600 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-200'}`}
           >
             Semana
           </button>
@@ -141,7 +143,7 @@ function PaginaAgenda() {
           <button
             type="button"
             onClick={() => moverFecha(modo === 'dia' ? -1 : -7)}
-            className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
+            className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
             aria-label="Anterior"
           >
             &larr;
@@ -150,12 +152,12 @@ function PaginaAgenda() {
             type="date"
             value={fechaSeleccionada}
             onChange={(evento) => setFechaSeleccionada(evento.target.value)}
-            className="px-2 py-1 text-sm border border-gray-300 rounded"
+            className="px-2 py-1 text-sm border border-gray-300 rounded dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
           <button
             type="button"
             onClick={() => moverFecha(modo === 'dia' ? 1 : 7)}
-            className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
+            className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
             aria-label="Siguiente"
           >
             &rarr;
@@ -164,7 +166,7 @@ function PaginaAgenda() {
       </div>
 
       <div className="mt-6">
-        {cargando && <p className="text-gray-500">Cargando agenda...</p>}
+        {cargando && <p className="text-gray-500 dark:text-gray-400">Cargando agenda...</p>}
 
         {!cargando && modo === 'dia' && (
           <CalendarioAgenda
@@ -176,10 +178,12 @@ function PaginaAgenda() {
 
         {!cargando && modo === 'semana' && (
           <div className="space-y-6">
-            {grupos.length === 0 && <p className="text-sm text-gray-500">No hay citas esta semana.</p>}
+            {grupos.length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No hay citas esta semana.</p>
+            )}
             {grupos.map(([clave, citasDelDia]) => (
               <div key={clave}>
-                <h2 className="mb-2 font-semibold text-gray-700">
+                <h2 className="mb-2 font-semibold text-gray-700 dark:text-gray-200">
                   {formatearFechaLegible(aFechaUtc(clave))}
                 </h2>
                 <CalendarioAgenda

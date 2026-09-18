@@ -103,13 +103,13 @@ function PaginaReservar() {
   }
 
   if (cargandoServicio) {
-    return <div className="p-8 text-gray-500">Cargando servicio...</div>;
+    return <div className="p-8 text-gray-500 dark:text-gray-400">Cargando servicio...</div>;
   }
 
   if (errorServicio || !servicio) {
     return (
       <div className="max-w-2xl px-4 py-8 mx-auto">
-        <p className="text-red-600">No se pudo cargar el servicio: {errorServicio}</p>
+        <p className="text-red-600 dark:text-red-400">No se pudo cargar el servicio: {errorServicio}</p>
         <Link to="/servicios" className="text-pink-600 hover:underline">
           Volver al catálogo
         </Link>
@@ -119,44 +119,44 @@ function PaginaReservar() {
 
   return (
     <div className="max-w-2xl px-4 py-8 mx-auto">
-      <Link to="/servicios" className="text-sm text-pink-600 hover:underline">
+      <Link to="/servicios" className="text-sm text-pink-600 hover:underline dark:text-pink-400">
         &larr; Volver al catálogo
       </Link>
 
-      <div className="p-4 mt-4 bg-white border border-gray-200 rounded-lg">
-        <h1 className="text-xl font-bold text-gray-800">{servicio.nombre}</h1>
+      <div className="p-4 mt-4 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700">
+        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">{servicio.nombre}</h1>
         <p className="mt-1 text-sm text-gray-500">
           {formatearDuracion(servicio.duracion_minutos)} · Q{Number(servicio.precio).toFixed(2)}
         </p>
       </div>
 
       {mensajeExito ? (
-        <div className="p-4 mt-6 text-green-800 bg-green-100 rounded">
+        <div className="p-4 mt-6 text-green-800 bg-green-100 rounded dark:bg-green-900 dark:text-green-200">
           <p>{mensajeExito}</p>
-          <Link to="/mis-citas" className="inline-block mt-2 underline text-green-900">
+          <Link to="/mis-citas" className="inline-block mt-2 underline text-green-900 dark:text-green-200">
             Ver mis citas
           </Link>
         </div>
       ) : (
         <>
           <div className="mt-6">
-            <h2 className="mb-2 font-semibold text-gray-700">1. Elige una fecha</h2>
+            <h2 className="mb-2 font-semibold text-gray-700 dark:text-gray-200">1. Elige una fecha</h2>
             <input
               type="date"
               min={obtenerFechaMinima()}
               value={fecha}
               onChange={(evento) => setFecha(evento.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded"
+              className="px-3 py-2 border border-gray-300 rounded dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
           </div>
 
           {fecha && (
             <div className="mt-6">
-              <h2 className="mb-2 font-semibold text-gray-700">2. Elige un horario</h2>
-              {cargandoHorarios && <p className="text-sm text-gray-500">Buscando horarios...</p>}
-              {errorHorarios && <p className="text-sm text-red-600">{errorHorarios}</p>}
+              <h2 className="mb-2 font-semibold text-gray-700 dark:text-gray-200">2. Elige un horario</h2>
+              {cargandoHorarios && <p className="text-sm text-gray-500 dark:text-gray-400">Buscando horarios...</p>}
+              {errorHorarios && <p className="text-sm text-red-600 dark:text-red-400">{errorHorarios}</p>}
               {!cargandoHorarios && !errorHorarios && horarios.length === 0 && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   No hay horarios disponibles ese día. Prueba con otra fecha.
                 </p>
               )}
@@ -172,8 +172,8 @@ function PaginaReservar() {
 
           {horaSeleccionada && (
             <div className="mt-6">
-              <h2 className="mb-2 font-semibold text-gray-700">3. Confirma tu cita</h2>
-              {mensajeError && <p className="mb-2 text-sm text-red-600">{mensajeError}</p>}
+              <h2 className="mb-2 font-semibold text-gray-700 dark:text-gray-200">3. Confirma tu cita</h2>
+              {mensajeError && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{mensajeError}</p>}
               <button
                 type="button"
                 onClick={manejarConfirmar}
