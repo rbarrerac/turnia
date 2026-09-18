@@ -7,9 +7,11 @@
 
 import prisma from '../configuracion/baseDeDatos.js';
 import { calcularFin, generarIntervalos, haySuperposicion } from '../utilidades/fechas.js';
+import GestorDeNotificaciones from './GestorDeNotificaciones.js';
 
 const UN_DIA_EN_MS = 24 * 60 * 60 * 1000;
 const DOS_HORAS_EN_MS = 2 * 60 * 60 * 1000;
+const DIEZ_MINUTOS_EN_MS = 10 * 60 * 1000;
 
 // RN-04 — transiciones de estado permitidas.
 const TRANSICIONES_VALIDAS = {
@@ -66,6 +68,10 @@ async function obtenerCitasDelDia(fechaUtc) {
 }
 
 class GestorDeReservas {
+  constructor() {
+    this.gestorDeNotificaciones = new GestorDeNotificaciones();
+  }
+
   async calcularDisponibilidad(servicioId, fecha) {
     const servicio = await obtenerServicioOFallar(servicioId);
     const { fechaUtc, diaSemana } = descomponerFecha(fecha);
@@ -172,11 +178,14 @@ class GestorDeReservas {
       throw error;
     }
 
-    // RN-05: se registra la notificación de confirmación pendiente de envío.
-    // El envío real del correo se implementa en el Incremento 5 (GestorDeNotificaciones).
-    await prisma.notificaciones.create({
-      data: { cita_id: cita.id, tipo: 'confirmacion', exitoso: false },
-    });
+    // RN-05: se envía (o se imprime en modo consola) el correo de confirmación y se
+    // registra en `notificaciones`. Un fallo aquí nunca debe hacer fallar la reserva
+    // ya creada: se captura y se registra en consola, no se propaga a la peticion.
+    try {
+      await this.gestorDeNotificaciones.enviarConfirmacion(cita);
+    } catch (error) {
+      console.error('GestorDeReservas: no se pudo registrar la notificación de confirmación:', error);
+    }
 
     return cita;
   }
@@ -242,6 +251,19 @@ class GestorDeReservas {
         `No se puede cambiar una cita de "${cita.estado}" a "${nuevoEstado}".`,
         400,
       );
+    }
+
+    // RN-08: no se puede completar una cita hasta que hayan pasado al menos 10
+    // minutos desde su hora de inicio.
+    if (nuevoEstado === 'completada') {
+      const msTranscurridos = Date.now() - cita.inicia_en.getTime();
+      if (msTranscurridos < DIEZ_MINUTOS_EN_MS) {
+        throw crearError(
+          'COMPLETADO_ANTICIPADO',
+          'No se puede completar una cita que aún no ha transcurrido: deben pasar al menos 10 minutos desde su inicio.',
+          400,
+        );
+      }
     }
 
     return prisma.citas.update({ where: { id: citaId }, data: { estado: nuevoEstado } });
