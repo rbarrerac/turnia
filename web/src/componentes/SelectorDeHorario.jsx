@@ -25,7 +25,7 @@ function SelectorDeHorario({ horariosDisponibles, horaSeleccionada, onSelecciona
             className={`px-3 py-2 text-sm rounded border transition-colors ${
               seleccionado
                 ? 'bg-pink-600 text-white border-pink-600'
-                : 'border-gray-300 text-gray-700 hover:border-pink-400'
+                : 'border-gray-300 text-gray-700 hover:border-pink-400 dark:border-gray-600 dark:text-gray-200 dark:hover:border-pink-500'
             }`}
           >
             {formatearHora(horario)}

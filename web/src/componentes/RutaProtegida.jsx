@@ -12,7 +12,7 @@ function RutaProtegida({ children, rolRequerido }) {
   const { usuario, cargando } = useAutenticacion();
 
   if (cargando) {
-    return <div className="p-8 text-gray-500">Cargando...</div>;
+    return <div className="p-8 text-gray-500 dark:text-gray-400">Cargando...</div>;
   }
 
   if (!usuario) {

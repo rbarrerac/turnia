@@ -22,15 +22,15 @@ function formatearPrecio(precio) {
 
 function TarjetaServicio({ servicio }) {
   return (
-    <div className="flex flex-col justify-between h-full p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div className="flex flex-col justify-between h-full p-4 bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 rounded-lg dark:border-gray-700 shadow-sm">
       <div>
-        <h3 className="text-lg font-semibold text-gray-800">{servicio.nombre}</h3>
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{servicio.nombre}</h3>
         {servicio.descripcion && (
-          <p className="mt-1 text-sm text-gray-500">{servicio.descripcion}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{servicio.descripcion}</p>
         )}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-sm">
-          <span className="text-gray-600">{formatearDuracion(servicio.duracion_minutos)}</span>
-          <span className="font-semibold text-gray-800">{formatearPrecio(servicio.precio)}</span>
+          <span className="text-gray-600 dark:text-gray-300">{formatearDuracion(servicio.duracion_minutos)}</span>
+          <span className="font-semibold text-gray-800 dark:text-gray-100">{formatearPrecio(servicio.precio)}</span>
         </div>
       </div>
       <Link
