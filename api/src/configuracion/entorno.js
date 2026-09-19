@@ -6,6 +6,7 @@
  */
 
 import 'dotenv/config';
+import path from 'node:path';
 
 const VARIABLES_CRITICAS = ['DATABASE_URL', 'JWT_SECRET', 'PUERTO_API', 'ORIGEN_PERMITIDO'];
 
@@ -27,6 +28,13 @@ export const entorno = {
   databaseUrl: process.env.DATABASE_URL,
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiracion: process.env.JWT_EXPIRACION ?? '7d',
+  // Carpeta donde se guardan las fotos subidas de la galería de trabajos (Incremento 6).
+  // Por defecto, "almacenamiento/trabajos" dentro de api/; los estáticos se sirven
+  // desde la carpeta padre ("almacenamiento") en /archivos, así que una foto queda
+  // accesible en /archivos/trabajos/<archivo>.
+  directorioSubidas: process.env.DIRECTORIO_SUBIDAS
+    ? path.resolve(process.env.DIRECTORIO_SUBIDAS)
+    : path.resolve(process.cwd(), 'almacenamiento', 'trabajos'),
   smtp: {
     host: process.env.SMTP_HOST,
     puerto: process.env.SMTP_PUERTO,

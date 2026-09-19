@@ -5,6 +5,7 @@
  * Fecha de creación: 17/09/2026
  */
 
+import path from 'node:path';
 import express from 'express';
 import cors from 'cors';
 import { entorno } from './configuracion/entorno.js';
@@ -15,6 +16,11 @@ const aplicacion = express();
 
 aplicacion.use(cors({ origin: entorno.origenPermitido }));
 aplicacion.use(express.json());
+
+// Sirve como estáticos la carpeta de almacenamiento local (galería de trabajos):
+// una foto guardada en <directorioSubidas>/<archivo> queda accesible en
+// /archivos/trabajos/<archivo>, ya que directorioSubidas termina en "trabajos".
+aplicacion.use('/archivos', express.static(path.dirname(entorno.directorioSubidas)));
 
 aplicacion.use('/api', enrutadorPrincipal);
 

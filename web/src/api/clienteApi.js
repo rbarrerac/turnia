@@ -6,12 +6,19 @@
  */
 
 const URL_BASE = import.meta.env.VITE_URL_API ?? 'http://localhost:4000/api';
+// URL de los archivos estáticos (galería de trabajos): la misma raíz que la API,
+// sin el sufijo "/api" (p. ej. http://localhost:4000/archivos/trabajos/<archivo>).
+const URL_ARCHIVOS = URL_BASE.replace(/\/api\/?$/, '');
 
 async function peticion(ruta, opciones = {}) {
+  // Con FormData (subida de archivos) el navegador debe fijar su propio
+  // Content-Type (con el boundary del multipart); no se debe forzar JSON.
+  const esFormData = typeof FormData !== 'undefined' && opciones.body instanceof FormData;
+
   const respuesta = await fetch(`${URL_BASE}${ruta}`, {
     ...opciones,
     headers: {
-      'Content-Type': 'application/json',
+      ...(esFormData ? {} : { 'Content-Type': 'application/json' }),
       ...opciones.headers,
     },
   });
@@ -55,6 +62,21 @@ export function enviar(ruta, cuerpo) {
     headers: encabezadosAutenticados(),
     body: JSON.stringify(cuerpo),
   });
+}
+
+// Subida de archivos (multipart/form-data), p. ej. una foto de la galería de trabajos.
+export function enviarArchivo(ruta, formData) {
+  return peticion(ruta, {
+    method: 'POST',
+    headers: encabezadosAutenticados(),
+    body: formData,
+  });
+}
+
+// Construye la URL pública de un archivo guardado en el almacenamiento del servidor
+// (p. ej. una foto de la galería), a partir del nombre de archivo devuelto por la API.
+export function urlArchivo(rutaRelativa) {
+  return `${URL_ARCHIVOS}/archivos/${rutaRelativa}`;
 }
 
 export function actualizar(ruta, cuerpo) {
