@@ -21,18 +21,16 @@ const TARJETAS = [
     icono: '💅',
   },
   {
-    titulo: 'Horario',
-    descripcion: 'Configurar el horario de atención.',
-    ruta: '/admin/horario',
-    icono: '🕒',
-  },
-  {
     titulo: 'Catálogo / Información',
-    descripcion: 'Próximamente: gestión de contenido.',
+    descripcion: 'Editar la galería de trabajos y el contenido de la página de inicio.',
     ruta: '/admin/contenido',
     icono: '🖼️',
   },
 ];
+
+// Nota: la tarjeta "Horario" (CU-10) se ocultó a propósito en el Incremento 6 —
+// ver bitácora de ARQUITECTURA.md. PaginaConfiguracionHorario.jsx se conserva sin
+// enlazar para un incremento futuro.
 
 function PaginaPanelAdmin() {
   return (

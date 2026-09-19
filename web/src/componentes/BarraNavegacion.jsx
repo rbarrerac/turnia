@@ -54,8 +54,8 @@ function BarraNavegacion() {
             <Link to="/admin/servicios" className="text-gray-600 hover:text-pink-600 dark:text-gray-300 dark:hover:text-pink-400">
               Servicios
             </Link>
-            <Link to="/admin/horario" className="text-gray-600 hover:text-pink-600 dark:text-gray-300 dark:hover:text-pink-400">
-              Horario
+            <Link to="/admin/contenido" className="text-gray-600 hover:text-pink-600 dark:text-gray-300 dark:hover:text-pink-400">
+              Contenido
             </Link>
           </>
         )}
