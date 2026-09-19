@@ -20,8 +20,10 @@ import PaginaSeguridad from './paginas/PaginaSeguridad.jsx';
 import PaginaPanelAdmin from './paginas/administradora/PaginaPanelAdmin.jsx';
 import PaginaAgenda from './paginas/administradora/PaginaAgenda.jsx';
 import PaginaGestionServicios from './paginas/administradora/PaginaGestionServicios.jsx';
-import PaginaConfiguracionHorario from './paginas/administradora/PaginaConfiguracionHorario.jsx';
 import PaginaContenidoAdmin from './paginas/administradora/PaginaContenidoAdmin.jsx';
+
+// Nota: PaginaConfiguracionHorario.jsx (CU-10) se conserva en el repositorio pero
+// sin ruta ni enlace desde este incremento — ver bitácora de ARQUITECTURA.md.
 
 function App() {
   return (
@@ -86,14 +88,6 @@ function App() {
           element={
             <RutaProtegida rolRequerido="administradora">
               <PaginaGestionServicios />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/admin/horario"
-          element={
-            <RutaProtegida rolRequerido="administradora">
-              <PaginaConfiguracionHorario />
             </RutaProtegida>
           }
         />
