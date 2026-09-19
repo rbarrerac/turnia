@@ -15,6 +15,11 @@ build/
 # Prisma
 api/prisma/migrations/dev/
 
+# Almacenamiento local de fotos de la galería de trabajos (Incremento 6):
+# se conserva la carpeta (con .gitkeep) pero no su contenido subido.
+api/almacenamiento/trabajos/*
+!api/almacenamiento/trabajos/.gitkeep
+
 # Archivos del sistema
 .DS_Store
 Thumbs.db

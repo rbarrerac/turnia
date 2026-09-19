@@ -11,6 +11,8 @@ import enrutadorServicios from './servicios.rutas.js';
 import enrutadorCitas from './citas.rutas.js';
 import enrutadorHorarios from './horarios.rutas.js';
 import enrutadorUsuarios from './usuarios.rutas.js';
+import enrutadorTrabajos from './trabajos.rutas.js';
+import enrutadorContenido from './contenido.rutas.js';
 
 const enrutador = Router();
 
@@ -23,5 +25,7 @@ enrutador.use('/servicios', enrutadorServicios);
 enrutador.use('/citas', enrutadorCitas);
 enrutador.use('/horarios', enrutadorHorarios);
 enrutador.use('/usuarios', enrutadorUsuarios);
+enrutador.use('/trabajos', enrutadorTrabajos);
+enrutador.use('/contenido', enrutadorContenido);
 
 export default enrutador;

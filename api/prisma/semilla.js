@@ -32,6 +32,20 @@ const HORARIO_SEMANAL_SEMILLA = [0, 1, 2, 3, 4, 5, 6].map((diaSemana) => ({
   activo: diaSemana !== 0,
 }));
 
+// Categorías iniciales de la galería de trabajos (Incremento 6), sin fotos todavía.
+const CATEGORIAS_GALERIA_SEMILLA = ['Uñas acrílicas', 'Nail art', 'Pedicura'];
+
+// Contenido por defecto de la página pública de inicio (Incremento 6, mini-CMS),
+// tomado de los textos que antes estaban fijos en PaginaInicio.jsx.
+const CONTENIDO_INICIO_SEMILLA = {
+  inicio_titulo: 'Bella Aurora — Estudio de Belleza',
+  inicio_subtitulo: 'Haz tu cita aquí:',
+  atiende_nombre: 'Aurora Marroquín',
+  atiende_bio:
+    '34 años, técnica en uñas con 10 años de experiencia. Especialista en nail art y uñas acrílicas.',
+  trabajos_intro: 'Conoce algunos de los diseños y trabajos que hemos hecho para nuestras clientas.',
+};
+
 async function sembrarAdministradora() {
   const correo = process.env.CORREO_ADMIN ?? 'admin@turnia.gt';
   let contrasena = process.env.CONTRASENA_ADMIN;
@@ -133,6 +147,38 @@ async function sembrarHorarioDeAtencion() {
   console.log(`Semilla: horario de atención semanal verificado (${creados} nuevos).`);
 }
 
+async function sembrarCategoriasDeGaleria() {
+  let creadas = 0;
+
+  for (const [indice, nombre] of CATEGORIAS_GALERIA_SEMILLA.entries()) {
+    const existente = await prisma.categorias_galeria.findUnique({ where: { nombre } });
+    if (existente) continue;
+
+    await prisma.categorias_galeria.create({ data: { nombre, orden: indice } });
+    creadas += 1;
+  }
+
+  console.log(
+    `Semilla: categorías de galería verificadas (${creadas} nuevas, ${CATEGORIAS_GALERIA_SEMILLA.length} en total).`,
+  );
+}
+
+async function sembrarContenidoDeInicio() {
+  let creadas = 0;
+
+  for (const [clave, valor] of Object.entries(CONTENIDO_INICIO_SEMILLA)) {
+    const existente = await prisma.contenido_sitio.findUnique({ where: { clave } });
+    if (existente) continue;
+
+    await prisma.contenido_sitio.create({ data: { clave, valor } });
+    creadas += 1;
+  }
+
+  console.log(
+    `Semilla: contenido de inicio verificado (${creadas} claves nuevas, ${Object.keys(CONTENIDO_INICIO_SEMILLA).length} en total).`,
+  );
+}
+
 async function principal() {
   console.log('Iniciando semilla de Turnia...');
 
@@ -140,6 +186,8 @@ async function principal() {
   await sembrarClienta();
   await sembrarCatalogoDeServicios();
   await sembrarHorarioDeAtencion();
+  await sembrarCategoriasDeGaleria();
+  await sembrarContenidoDeInicio();
 
   console.log('Semilla completada.');
 }

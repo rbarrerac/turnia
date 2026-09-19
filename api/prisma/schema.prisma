@@ -106,3 +106,31 @@ model notificaciones {
   enviado_en DateTime?
   exitoso    Boolean          @default(false)
 }
+
+model categorias_galeria {
+  id        String   @id @default(uuid()) @db.Uuid
+  nombre    String   @unique @db.VarChar(120)
+  orden     Int      @default(0)
+  activo    Boolean  @default(true)
+  creado_en DateTime @default(now())
+
+  fotos fotos_galeria[]
+}
+
+model fotos_galeria {
+  id           String             @id @default(uuid()) @db.Uuid
+  categoria_id String             @db.Uuid
+  categoria    categorias_galeria @relation(fields: [categoria_id], references: [id], onDelete: Cascade)
+  archivo      String             @db.VarChar(255)
+  titulo       String?            @db.VarChar(160)
+  descripcion  String?
+  orden        Int                @default(0)
+  creado_en    DateTime           @default(now())
+}
+
+// Almacén clave-valor para los textos editables de la página pública de inicio (mini-CMS).
+model contenido_sitio {
+  clave          String   @id @db.VarChar(80)
+  valor          String
+  actualizado_en DateTime @default(now()) @updatedAt
+}
