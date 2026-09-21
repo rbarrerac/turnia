@@ -24,6 +24,12 @@ function crearTransportador() {
     port: Number(entorno.smtp.puerto),
     secure: Number(entorno.smtp.puerto) === 465,
     auth: { user: entorno.smtp.usuario, pass: entorno.smtp.contrasena },
+    // Si el host SMTP configurado no responde, que falle rápido en vez de
+    // colgar la petición que disparó el envío (la llamada ya está en
+    // try/catch en enviarConfirmacion/enviarRecordatorio).
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 5000,
   });
 }
 
